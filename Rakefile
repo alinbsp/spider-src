@@ -13,7 +13,7 @@ task 'spider:upgrade' => %w(spider:download) do
   dir = 'lib/src-src/support'
   rm_rf dir
   mkdir_p dir
-  mv 'node_modules/spider', "#{dir}/spider"
+  mv 'node_modules/spider-script', "#{dir}/spider"
 end
 
 Rake::TestTask.new do |test|
