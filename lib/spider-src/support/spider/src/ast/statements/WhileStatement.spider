@@ -1,0 +1,28 @@
+use :node;
+
+var Node = module.require('../Node').Node;
+
+fn WhileStatement(test, body)
+  extends Node {
+  
+  this.type = 'WhileStatement';
+  
+  this.test = test;
+  this.test.parent = this;
+  
+  this.body = body;
+  this.body.parent = this;
+}
+
+WhileStatement.prototype.codegen = () -> {
+  if !super.codegen() {
+    return;
+  }
+  
+  this.test = this.test.codegen();
+  this.body = this.body.blockWrap().codegen();
+  
+  return this;
+};
+
+exports.WhileStatement = WhileStatement;

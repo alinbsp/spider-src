@@ -1,0 +1,30 @@
+use :node;
+
+var Node = module.require('./Node').Node;
+
+fn CatchClause(param, body) 
+  extends Node {
+  
+  this.type = 'CatchClause';
+  
+  this.param = param;
+  this.param.parent = this;
+  
+  this.body = body;
+  this.body.parent = this;
+}
+
+CatchClause.prototype.codegen = () -> {
+  if !super.codegen() {
+    return;
+  }
+  
+  this.param = this.param.codegen(false);
+  this.defineIdentifier(this.param);
+  
+  this.body = this.body.codegen();
+  
+  return this;
+};
+
+exports.CatchClause = CatchClause;

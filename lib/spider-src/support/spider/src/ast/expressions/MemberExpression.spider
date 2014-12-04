@@ -1,0 +1,57 @@
+use :node;
+
+var Node = module.require('../Node').Node;
+
+fn MemberExpression(left, right, computed)
+  extends Node {
+
+  this.type = 'MemberExpression';
+  this.computed = computed;
+  
+  this.object = left;
+  this.object.parent = this;
+  
+  this.property = right;
+  this.property.parent = this;
+}
+
+MemberExpression.prototype.codegen = () -> {
+  if !super.codegen() {
+    return;
+  }
+  
+  var objectType = this.object.type;
+  this.object = this.object.codegen(); 
+    
+  if !this.property.codeGenerated {
+    this.property = this.property.codegen(false);
+  }
+  
+  // compile an expression such as: b?.c?.d.e
+  // to: typeof b !== "undefined" && (b !== null && b.c !== null) ? b.c.d.e : null
+  // instead of: (typeof b !== "undefined" && (b !== null && b.c !== null) ? b.c.d : null).e;
+  if (this.object.type == 'ConditionalExpression' &&
+      (objectType == 'NullPropagatingExpression' || objectType == 'MemberExpression' || 
+       objectType == 'CallExpression' || objectType == 'NullCheckCallExpression')) {
+    this.type = this.object.type;
+    this.test = this.object.test;
+    this.alternate = this.object.alternate;
+    
+    this.consequent = {
+      type: 'MemberExpression',
+      object: this.object.consequent,
+      property: this.property,
+      computed: this.computed
+    };
+  }
+  
+  return this;
+};
+
+MemberExpression.prototype.hasCallExpression = () -> {
+  return this.object.__null_propagating ||
+         this.object?.hasCallExpression?() ||
+         this.property?.hasCallExpression();
+};
+
+exports.MemberExpression = MemberExpression;

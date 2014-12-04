@@ -1,0 +1,34 @@
+use :node;
+
+var Node = module.require('../Node').Node;
+
+fn ConditionalExpression(test, consequent, alternate) 
+  extends Node {
+  
+  this.type = 'ConditionalExpression';
+  
+  this.test = test;
+  this.test.parent = this;
+  
+  this.consequent = consequent;
+  this.consequent.parent = this;
+  
+  this.alternate = alternate;
+  this.alternate.parent = this;
+}
+
+ConditionalExpression.prototype.codegen = () -> {
+  if !super.codegen() {
+    return;
+  }
+    
+  this.test = this.test.codegen();
+  this.consequent = this.consequent.codegen();
+  this.alternate = this.alternate.codegen();
+  
+  return this;
+};
+
+ConditionalExpression.prototype.hasCallExpression = () -> true;
+
+exports.ConditionalExpression = ConditionalExpression;

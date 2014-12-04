@@ -1,0 +1,62 @@
+use :node;
+
+var Node = module.require('../Node').Node;
+
+fn UseStatement(identifiers)
+  extends Node {
+  
+  this.type = 'UseStatement';
+  
+  this.identifiers = identifiers;
+  
+  for id in this.identifiers {
+    id.parent = this;
+  }
+}
+
+UseStatement.predefinedCollections = {
+  'browser': [
+    'document',
+    'window',
+    'screen',
+    'location',
+    'navigator',
+    'alert',
+    'console',
+    'setTimeout'
+  ],
+  
+  'node': [
+    'require',
+    'exports',
+    'module',
+    'global',
+    'console',
+    'process',
+    'setTimeout',
+    '__dirname',
+    '__filename',
+  ]
+};
+
+UseStatement.prototype.codegen = () -> {
+  if !super.codegen() {
+    return;
+  }
+  
+  var context = this.getContext().node;
+  
+  for id in this.identifiers {
+    if (id.predefinedCollection) {
+      for p in exports.UseStatement.predefinedCollections[id.name] {
+        context.defineIdentifier({ name: p });
+      }
+    } else {
+      context.defineIdentifier(id);
+    }
+  }
+  
+  return null;
+};
+
+exports.UseStatement = UseStatement;

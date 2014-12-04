@@ -1,0 +1,19 @@
+use :node;
+
+var Node = module.require('./Node').Node;
+
+fn ExportBatchSpecifier()
+  extends Node {
+  
+  this.type = "ExportBatchSpecifier";
+}
+
+ExportBatchSpecifier.prototype.codegen = () -> {
+  if !super.codegen() {
+    return;
+  }
+  
+  return this;
+};
+
+exports.ExportBatchSpecifier = ExportBatchSpecifier;

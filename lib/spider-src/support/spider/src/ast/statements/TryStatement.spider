@@ -1,0 +1,42 @@
+use :node;
+
+var Node = module.require('../Node').Node;
+
+fn TryStatement(block, handler, finalizer)
+  extends Node {
+  
+  this.type = 'TryStatement';
+  
+  this.block = block;
+  this.block.parent = this;
+  
+  this.handler = handler;
+  if this.handler? {
+    this.handler.parent = this;
+  }
+  
+  this.finalizer = finalizer;
+  if this.finalizer? {
+    this.finalizer.parent = this;
+  }
+}
+
+TryStatement.prototype.codegen = () -> {
+  if !super.codegen() {
+    return;
+  }
+  
+  this.block = this.block.codegen();
+  
+  if this.handler? {
+    this.handler = this.handler.codegen();
+  }
+  
+  if this.finalizer? {
+    this.finalizer = this.finalizer.codegen();
+  }
+  
+  return this;
+};
+
+exports.TryStatement = TryStatement;

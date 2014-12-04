@@ -1,0 +1,19 @@
+use :node;
+
+var Node = module.require('../Node').Node;
+
+fn ContinueStatement()
+  extends Node {
+  
+  this.type = 'ContinueStatement';
+}
+
+ContinueStatement.prototype.codegen = () -> {
+  if !super.codegen() {
+    return;
+  }
+  
+  return this;
+};
+
+exports.ContinueStatement = ContinueStatement;

@@ -1,0 +1,179 @@
+use :node;
+
+var Node = module.require('../Node').Node;
+
+fn RangeMemberExpression(object, range)
+  extends Node {
+  
+  this.type = 'RangeMemberExpression';
+  this.object = object;
+  this.object.parent = this;
+  
+  this.range = range;
+  this.range.parent = this;
+}
+
+RangeMemberExpression.prototype.codegen = () -> {
+  if !super.codegen() {
+    return;
+  }
+  
+  var isNumber = (n) -> !::isNaN(::parseFloat(n)) && ::isFinite(n);
+   
+  // If this node is the left side of an assignment expression,  
+  // it means we're dealing with splice. For example: 
+  // items[1..2] = [1, 2];
+  if this.parent.type == 'AssignmentExpression' &&
+     this.parent.left == this {
+    this.parent.type = 'CallExpression';
+
+    this.parent.callee = {
+      "type": "MemberExpression",
+      "computed": false,
+      "object": {
+        "type": "MemberExpression",
+        "computed": false,
+        "object": {
+          "type": "ArrayExpression",
+          "elements": []
+        },
+        "property": {
+          "type": "Identifier",
+          "name": "splice"
+        }
+      },
+      "property": {
+        "type": "Identifier",
+        "name": "apply"
+      }
+    };
+    
+    var to;
+    var start = this.range.start.codegen() if this.range.start else {
+                 "type": "Literal",
+                 "value": 0
+               };   
+    
+    if this.range.to? {
+      if isNumber(start.value) &&
+         isNumber(this.range.to.value) {
+        to = {
+          "type": "Literal",
+          "value": this.range.to.value - start.value + (1 if this.range.operator == '..' else 0)
+        };
+      } else {
+        to = this.range.to.codegen();
+        
+        if start.value != 0 {
+          to = {
+            "type": "BinaryExpression",
+            "operator": "-",
+            "left": to,
+            "right": start,
+          };
+        }
+        
+        if this.range.operator == '..' {
+          to = {
+            "type": "BinaryExpression",
+            "operator": "+",
+            "left": to,
+            "right": {
+              "type": "Literal",
+              "value": 1
+            }
+          };
+        }
+      }          
+    } else {
+      to = {
+        "type": "Literal",
+        "value": 9000000000,
+        "raw": "9e9"
+      };
+    }  
+  
+    ::Object.defineProperty(this.parent, 'arguments', { 
+      value: [
+        this.object.codegen(),
+        {
+          "type": "CallExpression",
+          "callee": {
+            "type": "MemberExpression",
+            "computed": false,
+            "object": {
+              "type": "ArrayExpression",
+              "elements": [start, to]
+            },
+            "property": {
+              "type": "Identifier",
+              "name": "concat"
+            }
+          },
+          "arguments": [
+            this.parent.right
+          ]
+        }
+      ], 
+      enumerable: true 
+    });
+  } else {
+    // Otherwise, we're dealing with slice. For example:
+    // var x = items[1..2];
+    this.type = "CallExpression";
+    this.callee = {
+      "type": "MemberExpression",
+      "computed": false,
+      "object": this.object.codegen(),
+      "property": {
+        "type": "Identifier",
+        "name": "slice"
+      }
+    };
+    
+    var args = [];
+    
+    if !this.range.start? {
+      args.push({
+        "type": "Literal",
+        "value": 0
+      });
+    } else {
+      args.push(this.range.start.codegen());
+    }
+    
+    if this.range.to? {
+      if this.range.operator == '...' {
+        args.push(this.range.to.codegen());
+      } else {
+        if this.range.to.value && isNumber(this.range.to.value) {
+          args.push({
+            "type": "Literal",
+            "value": this.range.to.value + 1
+          });
+        } else {
+          args.push({
+            "type": "BinaryExpression",
+            "operator": "+",
+            "left": this.range.to.codegen(),
+            "right": {
+              "type": "Literal",
+              "value": 1
+            }          
+          });
+        }
+      }
+    }
+    
+    ::Object.defineProperty(this, 'arguments', { 
+      value: args, 
+      enumerable: true 
+    });
+  }
+  
+  return this;
+};
+
+RangeMemberExpression.prototype.hasCallExpression = () -> true;
+
+exports.RangeMemberExpression = RangeMemberExpression;

@@ -1,0 +1,68 @@
+use :node;
+
+var Node = module.require('../Node').Node;
+
+fn Identifier(name)
+  extends Node {
+  
+  this.type = 'Identifier';
+  this.global = false;
+  
+  ::Object.defineProperty(this, 'name', { 
+    value: name, 
+    enumerable: true 
+  });  
+}
+
+Identifier.prototype.codegen = (undefinedCheck = true) -> {
+  if !super.codegen() {
+    return;
+  }
+    
+  // Compile-time undefined check
+  if (undefinedCheck && !this.global) {
+    // If this is not a new identifier, ...
+    if !(this.parent?.type in ["FunctionDeclaration", "VariableDeclarator"] &&
+         this.parent.id == this) {
+      // ... and this identifier is undefined, raise an error
+      if (!this.parent.isIdentifierDefined(this.name)) {
+        Node.getErrorManager().error({
+          type: "UndefinedIdentifier",
+          identifier: this.name,
+          message: "undefined " + this.name,
+          loc: this.loc
+        });
+      }
+    } else {
+      // If this is a new identifier, and this identifier 
+      // is already defined, raise an error
+      if (this.parent.isIdentifierDefined(this.name)) {
+        Node.getErrorManager().error({
+          type: "AlreadyDefinedIdentifier",
+          identifier: this.name,
+          message: this.name + " is already defined",
+          loc: this.loc
+        });
+      } else {
+        // otherwise, define this identifier
+        this.parent.getContext().node.defineIdentifier(this);
+      }
+    }
+  }
+  
+  return this;
+};
+
+Identifier.prototype.hasCallExpression = () -> false;
+
+Identifier.prototype.asGlobal = () -> {
+  this.global = true;
+  return this;
+};
+
+Identifier.prototype.asPredefinedCollection = () -> {
+  this.predefinedCollection = true;
+  return this;
+};
+
+exports.Identifier = Identifier;

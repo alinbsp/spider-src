@@ -1,0 +1,37 @@
+use :node;
+
+var Node = module.require('../Node').Node;
+
+fn ArrayPattern(elements) 
+  extends Node {
+
+  this.type = 'ArrayPattern';
+  this.elements = elements;
+  
+  for element in this.elements {
+    if element? {
+      element.parent = this;
+    }
+  }
+}
+
+ArrayPattern.prototype.codegen = () -> {
+  if !super.codegen() {
+    return;
+  }
+  
+  var context = this.getContext().node;
+  for element, i in this.elements {
+    this.elements[i] = element?.codegen(false);
+    
+    if element? and element.type == "Identifier" {
+      context.defineIdentifier(element);
+    }
+  }
+  
+  return this;
+};
+
+ArrayPattern.prototype.hasCallExpression = () -> true;
+
+exports.ArrayPattern = ArrayPattern;

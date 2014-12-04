@@ -1,0 +1,19 @@
+use :node;
+
+var Node = module.require('../Node').Node;
+
+fn BreakStatement()
+  extends Node {
+  
+  this.type = 'BreakStatement';
+}
+
+BreakStatement.prototype.codegen = () -> {
+  if !super.codegen() {
+    return;
+  }
+  
+  return this;
+};
+
+exports.BreakStatement = BreakStatement;

@@ -1,0 +1,36 @@
+use :node;
+
+var Node = module.require('./Node').Node;
+
+fn Property(key, value, shorthand, method)
+  extends Node {
+  
+  this.type = 'Property';
+  this.kind = 'init';
+  this.method = method;
+  this.shorthand = shorthand;
+  this.computed = false;
+                
+  this.key = key;
+  this.key.parent = this;
+  
+  this.value = value;
+  this.value.parent = this;
+}
+
+Property.prototype.codegen = () -> {
+  if !super.codegen() {
+    return;
+  }
+  
+  this.key = this.key.codegen(false);
+  this.value = this.value.codegen(this.parent.type != "ObjectPattern");
+  
+  return this;
+};
+
+Property.prototype.hasCallExpression = () -> {
+  return this.value.hasCallExpression();
+};
+
+exports.Property = Property;

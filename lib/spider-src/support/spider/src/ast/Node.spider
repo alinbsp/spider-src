@@ -1,0 +1,104 @@
+use :node;
+
+fn Node() {
+  var self = this;
+  self.codeGenerated = false;
+  self.definedIdentifiers = [];
+  
+  ::Object.defineProperty(self, 'parent', {
+    value: null,
+    writable: true,
+    configurable: true,
+    enumerable: false
+  });
+  
+  self.getContext = () -> {
+    if self.type == 'Program' ||
+       self.type == 'BlockStatement' {
+      return { 
+        node: self,
+        position: -1
+      };
+    }
+    
+    if !self.parent? {
+      return null;
+    }
+    
+    var context = self.parent.getContext();
+    
+    if !context? { 
+      return null;
+    }
+    
+    if context.position == -1 {
+      return {
+        node: context.node,
+        position: context.node.body.indexOf(self)
+      };
+    } else {
+      return context;
+    }
+  };
+  
+  self.defineIdentifier = (identifier) -> {
+    self.definedIdentifiers.push(identifier);
+  };
+  
+  self.isIdentifierDefined = (name) -> {
+    var defined = false;
+    
+    for identifier in self.definedIdentifiers {
+      if identifier.name == name {
+        defined = true;
+      }
+    }
+    
+    return defined || (self.parent && self.parent.isIdentifierDefined(name));
+  };
+  
+  self.getDefinedIdentifier = (name) -> {
+    var id;
+    
+    for identifier in self.definedIdentifiers {
+      if identifier.name == name {
+        id = identifier;
+      }
+    }
+    
+    return id ?? (self.parent.getDefinedIdentifier(name) if self.parent else null);
+  };
+  
+  self.blockWrap = () -> {
+    if self.type == 'BlockStatement' {
+      return self;
+    }
+    
+    var myParent = self.parent;
+    var blockStatement = module.require('./statements/BlockStatement');
+    
+    var block = new blockStatement.BlockStatement([self]);
+    block.parent = myParent;
+    
+    return block;
+  };  
+}
+
+Node.prototype.codegen = () -> {
+  if this.codeGenerated {
+    return false;
+  }
+  
+  this.codeGenerated = true;
+  return true;
+};
+
+Node.setErrorManager = (errorManager) -> {
+  this.errorManager = errorManager;
+};
+
+Node.getErrorManager = () -> {
+  return this.errorManager;
+};
+
+exports.Node = Node;
